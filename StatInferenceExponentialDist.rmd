@@ -1,0 +1,113 @@
+---
+title: "Examining the Exponential Distribution"
+output: html_document
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+require(ggplot2)
+```
+
+This paper examines some properties of the exponential distribution. Specifically, it looks at how the mean and variance of 1000 simulations of 40 randomly generated draws from the exponential distribution can be shown to very closely approximate the normal distribution.
+
+**Constants**
+
+The code below establishes a few constants that will be used throughout the rest of the paper.
+
+```{r constants}
+lamb <- 0.2
+popMean <- 1/lamb
+popSD <- 1/lamb
+nSim <- 1000
+nSamples <- 40
+```
+
+**Perform Simulations**
+
+The code below performs the 1000 simulations of 40 samples from the exponential distribution. First it sets the seed, then uses the replicate function to perform the sampling and generate a vector of means for each sample.
+
+```{r generate_sample_data, warning=FALSE}
+set.seed(54321)
+
+sMeans <- replicate(nSim, {
+  sMean <- rexp(nSamples, lamb)
+  mean(sMean)
+  })
+
+sampleMean <- mean(sMeans)
+sampleSD <- sd(sMeans)
+```
+
+**Sample Mean vs. Theoretical Mean**
+
+The plot below shows the distribution of the means of the 1000 simulations. The sample mean is shown as a green line, while the theoretical mean (1/λ) is shown as a blue line. As you can see, the theoretical center of the distribution is **`r popMean`**, while the sample mean was **`r round(sampleMean, digits=3)`**.
+
+```{r means_plot, echo=FALSE, warning=FALSE}
+df <- data.frame(sMeans=sMeans)
+means_plot <- ggplot(df, aes(x=sMeans))
+means_plot <- means_plot + geom_histogram(aes(y=..density..),
+          binwidth=.5,
+          color="black", fill="white")
+means_plot <- means_plot + geom_density(alpha=.1, fill="red")
+means_plot <- means_plot + xlim(2.5,7.5)
+means_plot <- means_plot + geom_vline(xintercept = sampleMean, color="green")
+means_plot <- means_plot + geom_vline(xintercept = popMean, color="blue")
+means_plot <- means_plot + xlab("Mean of Sample")
+
+means_plot
+```
+
+**Sample Variance vs. Theoretical Variance**
+
+The actual sample variance and theoretical sample variance are defined below:
+
+```{r sample_variances}
+sampleVar <- var(sMeans)
+sampleVarTheo <- popSD^2/nSamples
+sampleSDTheo <- sqrt(sampleVarTheo)
+```
+
+The theoretical sample variance is **`r round(sampleVarTheo, 3)`**, while the actual sample variance was **`r round(sampleVar,3 )`**. Similarly, the theoretical sample standard deviation is **`r round(sampleSDTheo, 3)`**, while the actual sample variance was **`r round(sampleSD, 3)`**.
+
+The plot below shows the relationship between the actual sample deviation and the theoretical sample standard deviation.
+
+```{r var_plot, echo=FALSE, warning=FALSE}
+var_plot <- ggplot(df, aes(x=sMeans))
+var_plot <- var_plot + geom_histogram(aes(y=..density..),
+          binwidth=.5,
+          color="black", fill="white")
+var_plot <- var_plot + geom_density(alpha=.1, fill="red")
+var_plot <- var_plot + xlim(2.5,7.5)
+var_plot <- var_plot + geom_vline(xintercept = sampleMean+c(-3:3*sampleSD), color="green")
+var_plot <- var_plot + geom_vline(xintercept = popMean+c(-3:3*sampleSDTheo), color="blue")
+var_plot <- var_plot + xlab("Variance of Sample")
+
+
+var_plot
+```
+
+**Explanation of Distribution and Relationships**
+
+Both figures above demonstrate clearly that the distribution of means is approximately normal.
+
+**Appendix**
+
+I would also like to demonstrate how the actual sample mean approaches the theoretical sample mean over time.
+
+The code below defines some variables we will use to investigate this:
+
+```{r}
+cumMeans <- cumsum(sMeans)/(1:nSim)
+meansData <- data.frame(1:1000,cumMeans)
+names(meansData) <- c("num_obs", "mean")
+```
+
+The line graph below shows how the actual sample mean approches the theoretical sample mean as the number of samples grows larger. The green line represents the theoretical sample mean.
+
+```{r mean_over_time_plot, echo=FALSE}
+mot_plot <- ggplot(data=meansData, aes(x=num_obs, y=mean)) + geom_line()
+mot_plot <- mot_plot + geom_hline(yintercept = popMean, color="green")
+mot_plot <- mot_plot + xlab("Number of Samples")
+mot_plot <- mot_plot + ylab("Sample Mean")
+
+mot_plot
+```

@@ -1,0 +1,84 @@
+---
+title: "Tooth Growth Data Analysis"
+output: html_document
+---
+
+```{r load_in_data, echo=FALSE, warning=FALSE, message=FALSE}
+library(datasets)
+require(ggplot2)
+require()
+data(ToothGrowth)
+tg <- ToothGrowth
+```
+
+**Summary of Data**
+
+The ToothGrowth data set in that comes as part of the R datasets library documents "the length of odontoblasts (teeth) in each of 10 guinea pigs at each of three dose levels of Vitamin C (0.5, 1, and 2 mg) with each of two delivery methods (orange juice or ascorbic acid)."
+
+It's important to note that guniea pigs' teeth grow continuously throughout their lives. These data represent the tooth growth of each guinea pig in the population over an unknown period of time (assumed to be uniform) after recieving the different supplement types and doses.
+
+**Explortatory Data Analysis**
+
+The data can be most meaningfully split by dose or supplement (or both). The figure below plots mean growth by both supplement type and dosage.
+
+```{r exploratory_plot, echo=FALSE, warning=FALSE}
+expPlot <- ggplot(tg, aes(x=dose, y=len, color=supp)) + geom_point(alpha=.3) + stat_smooth(size=1)
+expPlot <- expPlot + ggtitle("Tooth Growth by Supplement and Dose")
+expPlot <- expPlot + xlab("Dose") + ylab("Tooth Growth")
+expPlot <- expPlot + guides(color=guide_legend(title=NULL))
+
+expPlot
+```
+
+At first glance, the exploratory analysis shows that there is roughly a 2.25 to 1 relationship between tooth growth and dosage - the mean value at dose 0.5 is approximately 12, while the mean value at dose 2 is about 27.
+
+The orange juice doses achieve more tooth growth at the lower dosages, with a particularly steep increase from 0.5 to 1. That growth levels off after 1, however, so that orange juice delivers almost exactly the same growth as ascorbic acid at dose 2.
+
+**Tests and Confidence Intervals**
+
+The exploratory analysis makes this fairly clear already, but let's first make sure that there is a provable relationship between dosage and tooth growth.
+
+The hypothesis Hzero will be that there is no correlation, and that the mean of the 2.0 and 0.5 dose levels are within a 95% confidence interval of the population mean. Let's test if Hzero is rejectable using the formula (observed mean) - (hypothesized mean) / (sigma / sqrt(n).
+
+```{r p_values}
+obMeanHigh <- mean(tg[tg$dose==2.0,]$len)
+obMeanLow <- mean(tg[tg$dose==0.5,]$len)
+hZeroMean <- mean(tg$len)
+
+sdsOfMeanLow <- round((obMeanLow - hZeroMean) / (sd(tg$len) / sqrt(60)), 2)
+sdsOfMeanHigh <- round((obMeanHigh - hZeroMean) / (sd(tg$len) / sqrt(60)), 2)
+```
+
+Because the mean values of the low and high dose cohorts are, respectively, **`r sdsOfMeanLow`** and **`r sdsOfMeanHigh`** standard deviations away from the population mean, it's clear that it's almost impossible that the tooth growth is not influenced by supplement dosage.
+
+The exploratory analysis also seems to show that the ascorbic acid produces less growth at lower dose levels than orange juice. We can confirm that this is true using t.test.
+
+```{r conf_levels}
+conf1 <- t.test(tg[tg$supp == "OJ" & tg$dose == 0.5,]$len - tg[tg$supp == "VC" & tg$dose == 0.5,]$len)$conf
+
+conf2 <- t.test(tg[tg$supp == "OJ" & tg$dose == 1,]$len - tg[tg$supp == "VC" & tg$dose == 1,]$len)$conf
+
+conf3 <- t.test(tg[tg$supp == "OJ" & tg$dose == 2,]$len - tg[tg$supp == "VC" & tg$dose == 2,]$len)$conf
+```
+
+The resulting confidence intervals are below. There are positive confidence intervals for the 0.5 and 1 doses.
+
+```{r conf_results}
+conf1
+
+conf2
+
+conf3
+```
+
+**Conclusions**
+
+The analysis clearly shows that there is a meaningful connection between supplement use and tooth growth in this population of guinea pigs. It is also provable that orange juice produces more tooth growth at doses 0.5 and 1 as compared to ascorbic acid.
+
+**Assumptions**
+
+* This population of guinea pigs is not influenced by any other dietary or environmental variables.
+
+* The dosage and supplement assignments were properly randomized among the guinea pigs.
+
+* The periods of time given for tooth growth were uniform over different dose and supplement levels.
